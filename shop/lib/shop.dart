@@ -134,10 +134,17 @@ class Shop {
 
   // A record bundles several values together without making a class for
   // them. This one gives back four answers at once.
-  ({int sales, int itemsSold, int takings, String? bestSeller}) todaysReport() {
+  // Sales are saved now, so the shop remembers every day's sales. The report
+  // only counts one day's: today's, unless you pass a different day.
+  ({int sales, int itemsSold, int takings, String? bestSeller}) todaysReport({
+    DateTime? day,
+  }) {
+    DateTime reportDay = day ?? DateTime.now();
+    List<Sale> daySales = _sales.where((sale) => sale.isOn(reportDay)).toList();
+
     // Add up how many of each product sold, in a map.
     Map<String, int> soldByProduct = {};
-    for (Sale sale in _sales) {
+    for (Sale sale in daySales) {
       soldByProduct[sale.productName] =
           (soldByProduct[sale.productName] ?? 0) + sale.quantity;
     }
@@ -155,10 +162,27 @@ class Shop {
     }
 
     return (
-      sales: _sales.length,
-      itemsSold: _sales.fold(0, (total, sale) => total + sale.quantity),
-      takings: _sales.fold(0, (total, sale) => total + sale.total),
+      sales: daySales.length,
+      itemsSold: daySales.fold(0, (total, sale) => total + sale.quantity),
+      takings: daySales.fold(0, (total, sale) => total + sale.total),
       bestSeller: bestSeller,
     );
+  }
+
+  // --- Saving and loading ---------------------------------------------------
+
+  // The whole shop as one map: a list of products and a list of sales.
+  Map<String, dynamic> toJson() => {
+    'products': _products.map((product) => product.toJson()).toList(),
+    'sales': _sales.map((sale) => sale.toJson()).toList(),
+  };
+
+  Shop.fromJson(Map<String, dynamic> json) {
+    for (var product in json['products'] as List) {
+      _products.add(Product.fromJson(product as Map<String, dynamic>));
+    }
+    for (var sale in json['sales'] as List) {
+      _sales.add(Sale.fromJson(sale as Map<String, dynamic>));
+    }
   }
 }

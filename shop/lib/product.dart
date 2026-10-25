@@ -27,6 +27,31 @@ class Product {
     this.barcode,
   });
 
+  // --- Saving and loading ---------------------------------------------------
+
+  // A file can only hold text, so we turn a product into a map of simple
+  // values (text and numbers) that dart:convert can write out as JSON.
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'category': category.name,
+    'price': price,
+    'stock': stock,
+    'barcode': barcode,
+  };
+
+  // A factory constructor can do some work before making the object. This
+  // one reads the map back. Category.values.byName turns 'food' back into
+  // Category.food.
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      name: json['name'] as String,
+      category: Category.values.byName(json['category'] as String),
+      price: json['price'] as int,
+      stock: json['stock'] as int,
+      barcode: json['barcode'] as String?,
+    );
+  }
+
   // A getter looks like a field but works its answer out each time.
   bool get isSoldOut => stock == 0;
   bool get isRunningLow => stock <= lowStockLevel;

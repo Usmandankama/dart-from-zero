@@ -1,4 +1,4 @@
 # The shop's saved data and the built program belong to whoever runs it,
 # not to the course code.
-shop.json
+shop.json*
 *.exe

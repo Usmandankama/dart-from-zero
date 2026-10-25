@@ -1,8 +1,9 @@
-// Lesson 9 · When things go wrong: exceptions and input checks
+// Lesson 10 · Async and files: saving the shop to disk
 //
 // Run it from the shop folder:   dart run
 // Type a menu number and press Enter. Type q to quit.
 // When it asks a question, press Enter on its own to go back to the menu.
+// Everything is saved to shop.json in the folder you run it from.
 
 import 'dart:io';
 
@@ -10,11 +11,15 @@ import 'package:shop/money.dart';
 import 'package:shop/product.dart';
 import 'package:shop/shop.dart';
 import 'package:shop/shop_exception.dart';
+import 'package:shop/storage.dart';
 
 const shopName = "Mama Nkechi's Shop";
 
-void main() {
-  Shop shop = Shop.withSampleStock();
+// async lets main use await. An async function always gives back a Future,
+// so main's type becomes Future<void>.
+Future<void> main() async {
+  ShopStorage storage = ShopStorage(File('shop.json'));
+  Shop shop = await storage.load();
 
   print('Welcome to $shopName');
 
@@ -40,6 +45,7 @@ void main() {
             break;
           }
           var sale = shop.sell(product, quantity);
+          await storage.save(shop);
           print(
             'Sold ${sale.quantity} x ${sale.productName} '
             'for ${formatNaira(sale.total)}.',
@@ -55,10 +61,12 @@ void main() {
             break;
           }
           shop.restock(product, arrived);
+          await storage.save(shop);
           print(product.describe());
 
         case '4':
           addProduct(shop);
+          await storage.save(shop);
 
         case '5':
           List<Product> low = shop.runningLow;
@@ -70,9 +78,8 @@ void main() {
 
         case '6':
           var (:sales, :itemsSold, :takings, :bestSeller) = shop.todaysReport();
-          print(
-            '$sales sales, $itemsSold items, ${formatNaira(takings)} taken.',
-          );
+          print('Sales today: $sales ($itemsSold items)');
+          print('Taken today: ${formatNaira(takings)}');
           print('Best seller: ${bestSeller ?? 'nothing sold yet'}');
           print('Stock left is worth ${formatNaira(shop.stockValue)}.');
 
