@@ -1,19 +1,19 @@
-// Lesson 8 · Classes, enums and records
+// Lesson 9 · When things go wrong: exceptions and input checks
 //
 // Run it from the shop folder:   dart run
 // Type a menu number and press Enter. Type q to quit.
+// When it asks a question, press Enter on its own to go back to the menu.
 
 import 'dart:io';
 
-// package:shop/ means "the lib folder of this project".
 import 'package:shop/money.dart';
 import 'package:shop/product.dart';
 import 'package:shop/shop.dart';
+import 'package:shop/shop_exception.dart';
 
 const shopName = "Mama Nkechi's Shop";
 
 void main() {
-  // One object holds the whole shop now, instead of maps and lists in main.
   Shop shop = Shop.withSampleStock();
 
   print('Welcome to $shopName');
@@ -23,66 +23,68 @@ void main() {
     printMenu();
     String choice = stdin.readLineSync()?.trim() ?? 'q';
 
-    switch (choice) {
-      case '1':
-        printProducts(shop.products);
+    // try runs the menu choice. If anything in it throws a ShopException,
+    // Dart jumps straight to the on ... catch block instead of crashing.
+    try {
+      switch (choice) {
+        case '1':
+          printProducts(shop.products);
 
-      case '2':
-        Product? product = pickProduct(shop.products);
-        if (product == null) {
-          break;
-        }
-        int? quantity = askNumber('How many? ');
-        if (quantity == null) {
-          print('Please type a whole number above 0.');
-          break;
-        }
-        var sale = shop.sell(product, quantity);
-        if (sale == null) {
-          print('Sorry, only ${product.stock} left.');
-        } else {
+        case '2':
+          Product? product = pickProduct(shop.products);
+          if (product == null) {
+            break;
+          }
+          int? quantity = askNumber('How many? ');
+          if (quantity == null) {
+            break;
+          }
+          var sale = shop.sell(product, quantity);
           print(
             'Sold ${sale.quantity} x ${sale.productName} '
             'for ${formatNaira(sale.total)}.',
           );
-        }
 
-      case '3':
-        Product? product = pickProduct(shop.products);
-        if (product == null) {
-          break;
-        }
-        int? arrived = askNumber('How many arrived? ');
-        if (arrived == null) {
-          print('Please type a whole number above 0.');
-        } else {
+        case '3':
+          Product? product = pickProduct(shop.products);
+          if (product == null) {
+            break;
+          }
+          int? arrived = askNumber('How many arrived? ');
+          if (arrived == null) {
+            break;
+          }
           shop.restock(product, arrived);
           print(product.describe());
-        }
 
-      case '4':
-        addProduct(shop);
+        case '4':
+          addProduct(shop);
 
-      case '5':
-        List<Product> low = shop.runningLow;
-        if (low.isEmpty) {
-          print('Nothing is running low.');
-        } else {
-          printProducts(low);
-        }
+        case '5':
+          List<Product> low = shop.runningLow;
+          if (low.isEmpty) {
+            print('Nothing is running low.');
+          } else {
+            printProducts(low);
+          }
 
-      case '6':
-        // Pull the record's four values out into four variables at once.
-        var (:sales, :itemsSold, :takings, :bestSeller) = shop.todaysReport();
-        print('$sales sales, $itemsSold items, ${formatNaira(takings)} taken.');
-        print('Best seller: ${bestSeller ?? 'nothing sold yet'}');
-        print('Stock left is worth ${formatNaira(shop.stockValue)}.');
+        case '6':
+          var (:sales, :itemsSold, :takings, :bestSeller) = shop.todaysReport();
+          print(
+            '$sales sales, $itemsSold items, ${formatNaira(takings)} taken.',
+          );
+          print('Best seller: ${bestSeller ?? 'nothing sold yet'}');
+          print('Stock left is worth ${formatNaira(shop.stockValue)}.');
 
-      case 'q' || 'Q':
-        running = false;
+        case 'q' || 'Q':
+          running = false;
 
-      default:
-        print('Sorry, "$choice" is not on the menu.');
+        default:
+          print('Sorry, "$choice" is not on the menu.');
+      }
+    } on ShopException catch (problem) {
+      // A normal shop problem: tell the person and carry on.
+      print('Sorry: ${problem.message}');
     }
   }
 
@@ -112,34 +114,33 @@ void printProducts(List<Product> products) {
 
 Product? pickProduct(List<Product> products) {
   printProducts(products);
-  int? number = askNumber('Which product? ');
-  if (number == null || number > products.length) {
-    print('There is no product with that number.');
+  int? number = askNumber('Which product? ', max: products.length);
+  if (number == null) {
     return null;
   }
   return products[number - 1];
 }
 
 void addProduct(Shop shop) {
-  stdout.write('Product name: ');
-  String name = stdin.readLineSync()?.trim() ?? '';
-  if (name.isEmpty) {
-    print("The name can't be empty.");
+  String? name = askText('Product name: ');
+  if (name == null) {
     return;
   }
 
-  // Category.values is a list of every value in the enum.
   for (var i = 0; i < Category.values.length; i++) {
     print('${i + 1}. ${Category.values[i].name}');
   }
-  int? categoryNumber = askNumber('Category: ');
+  int? categoryNumber = askNumber('Category: ', max: Category.values.length);
+  if (categoryNumber == null) {
+    return;
+  }
   int? price = askNumber('Price in naira: ');
-  int? stock = askNumber('How many in stock? ');
-  if (categoryNumber == null ||
-      categoryNumber > Category.values.length ||
-      price == null ||
-      stock == null) {
-    print('Please type whole numbers above 0, and a category from the list.');
+  if (price == null) {
+    return;
+  }
+  // min: 0, because a new product can arrive with none in stock yet.
+  int? stock = askNumber('How many in stock? ', min: 0);
+  if (stock == null) {
     return;
   }
 
@@ -149,18 +150,36 @@ void addProduct(Shop shop) {
     price: price,
     stock: stock,
   );
-  if (shop.add(product)) {
-    print('Added ${product.describe()}');
-  } else {
-    print('$name is already in the shop.');
+  // If add throws (the name is already taken), the print below never runs:
+  // Dart goes straight to the catch in main.
+  shop.add(product);
+  print('Added ${product.describe()}');
+}
+
+// Keeps asking until it gets a whole number from min to max. Pressing Enter
+// on its own gives back null, which means "go back to the menu".
+int? askNumber(String question, {int min = 1, int? max}) {
+  while (true) {
+    String? text = askText(question);
+    if (text == null) {
+      return null;
+    }
+    int? number = int.tryParse(text);
+    if (number != null && number >= min && (max == null || number <= max)) {
+      return number;
+    }
+    String range = max == null ? '$min or more' : 'from $min to $max';
+    print('Please type a whole number $range, or press Enter to go back.');
   }
 }
 
-int? askNumber(String question) {
+// Gives back what was typed with the spaces trimmed off, or null if nothing
+// was typed (or the input has ended).
+String? askText(String question) {
   stdout.write(question);
-  int? number = int.tryParse(stdin.readLineSync()?.trim() ?? '');
-  if (number == null || number <= 0) {
+  String? text = stdin.readLineSync()?.trim();
+  if (text == null || text.isEmpty) {
     return null;
   }
-  return number;
+  return text;
 }

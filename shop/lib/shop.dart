@@ -1,5 +1,6 @@
 import 'product.dart';
 import 'sale.dart';
+import 'shop_exception.dart';
 
 // The whole shop: its products and today's sales, and everything you can do
 // with them. bin/shop.dart asks the questions; this class does the work.
@@ -85,20 +86,33 @@ class Shop {
     return null;
   }
 
-  // Gives back false if a product with that name is already in the shop.
-  bool add(Product product) {
+  // throw stops the method straight away and hands the problem back to
+  // whoever called it. Nothing after the throw runs.
+  void add(Product product) {
+    if (product.name.trim().isEmpty) {
+      throw ShopException("A product's name can't be empty.");
+    }
+    if (product.price <= 0) {
+      throw ShopException('${product.name} needs a price above ₦0.');
+    }
     if (find(product.name) != null) {
-      return false;
+      throw ShopException('${product.name} is already in the shop.');
     }
     _products.add(product);
-    return true;
   }
 
-  // Sells some of a product and gives back the sale, or null if there
-  // isn't enough stock.
-  Sale? sell(Product product, int quantity) {
+  // Sells some of a product and gives back the sale.
+  Sale sell(Product product, int quantity) {
+    // ArgumentError is for mistakes in the code, not in the shop: the menu
+    // should never ask to sell 0 of something.
+    if (quantity <= 0) {
+      throw ArgumentError.value(quantity, 'quantity', 'must be above 0');
+    }
+    if (product.isSoldOut) {
+      throw ShopException('${product.name} is sold out.');
+    }
     if (quantity > product.stock) {
-      return null;
+      throw ShopException('Only ${product.stock} ${product.name} left.');
     }
     product.stock -= quantity;
     Sale sale = Sale(
@@ -112,6 +126,9 @@ class Shop {
   }
 
   void restock(Product product, int arrived) {
+    if (arrived <= 0) {
+      throw ArgumentError.value(arrived, 'arrived', 'must be above 0');
+    }
     product.stock += arrived;
   }
 
