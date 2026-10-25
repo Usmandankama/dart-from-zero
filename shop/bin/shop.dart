@@ -1,4 +1,4 @@
-// Lesson 3 · Variables, types and text
+// Lesson 4 · Null safety: values that might be missing
 //
 // Run it from the shop folder:   dart run
 
@@ -55,9 +55,57 @@ void main() {
   // condition ? this : that picks one of two values.
   print('Running low? ${stock <= lowStockLevel ? 'yes' : 'no'}'); // no
 
+  // --- Values that might be missing ----------------------------------------
+
+  // A normal variable can never be null (no value). Try it:
+  // int discount = null; // Uncomment to see the error.
+
+  // A ? on the type means "this, or nothing". Not every product has a
+  // barcode, so barcodeFor (at the bottom of this file) can give back null.
+  String? barcode = barcodeFor(name);
+  String? milkBarcode = barcodeFor('Peak Milk');
+
+  // Way 1: ?? means "use this other value if it's null".
+  print('');
+  print('Barcode: ${barcode ?? 'none yet'}'); // Barcode: none yet
+
+  // Way 2: ?. means "only do this if it isn't null". Otherwise you get null.
+  print('Barcode digits: ${barcode?.length}'); // Barcode digits: null
+
+  // Way 3: check first. Inside the if, Dart knows milkBarcode isn't null.
+  if (milkBarcode != null) {
+    print('Peak Milk: $milkBarcode, ${milkBarcode.length} digits'); // 13
+  }
+
+  // ??= sets a value only if there isn't one yet.
+  barcode ??= 'NO-CODE';
+  print('Barcode now: $barcode'); // Barcode now: NO-CODE
+
+  // --- Turning text into numbers -------------------------------------------
+
+  // Whatever someone types arrives as text. int.tryParse turns it into an
+  // int, or gives null if the text isn't a whole number.
+  int? sold = int.tryParse('3');
+  int? typo = int.tryParse('three');
+  print('Sold: $sold, typo: $typo'); // Sold: 3, typo: null
+
+  // Dart won't let you do maths with an int? until you've dealt with null.
+  // int wrong = stock - typo; // Uncomment to see the error.
+  int left = stock - (typo ?? 0);
+  print('Left after the typo: $left'); // Left after the typo: 20
+
   // Three quotes let text run over several lines.
   print('''
 
 Thank you for shopping at
 $shopName''');
+}
+
+// Gives back a product's barcode, or null if it doesn't have one yet.
+// Lesson 6 explains functions like this one properly.
+String? barcodeFor(String product) {
+  if (product == 'Peak Milk') {
+    return '6151100012345';
+  }
+  return null;
 }
