@@ -1,4 +1,4 @@
-// Lesson 10 · Async and files: saving the shop to disk
+// Lesson 11 · Packages and the internet: live exchange rates
 //
 // Run it from the shop folder:   dart run
 // Type a menu number and press Enter. Type q to quit.
@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:shop/money.dart';
 import 'package:shop/product.dart';
+import 'package:shop/rates.dart';
 import 'package:shop/shop.dart';
 import 'package:shop/shop_exception.dart';
 import 'package:shop/storage.dart';
@@ -20,6 +21,7 @@ const shopName = "Mama Nkechi's Shop";
 Future<void> main() async {
   ShopStorage storage = ShopStorage(File('shop.json'));
   Shop shop = await storage.load();
+  RatesService rates = RatesService();
 
   print('Welcome to $shopName');
 
@@ -83,6 +85,9 @@ Future<void> main() async {
           print('Best seller: ${bestSeller ?? 'nothing sold yet'}');
           print('Stock left is worth ${formatNaira(shop.stockValue)}.');
 
+        case '7':
+          await showDollarPrices(shop, storage, rates);
+
         case 'q' || 'Q':
           running = false;
 
@@ -99,6 +104,49 @@ Future<void> main() async {
   print('Goodbye!');
 }
 
+// --- Dollar prices ---------------------------------------------------------
+
+// Fetches today's rate and prints every price in dollars. With no internet,
+// it uses the last rate it saved, and says how old it is.
+Future<void> showDollarPrices(
+  Shop shop,
+  ShopStorage storage,
+  RatesService rates,
+) async {
+  print("Getting today's exchange rate...");
+  try {
+    shop.dollarRate = await rates.nairaToDollar();
+    shop.dollarRateDate = DateTime.now();
+    await storage.save(shop);
+  } on Exception {
+    // on Exception catches every kind of exception: no internet
+    // (SocketException), too slow (TimeoutException), or a strange reply.
+    print('Could not reach the rates server. Is the internet on?');
+  }
+
+  // Copy the fields into local variables, so Dart can be sure they don't
+  // change between the null check and using them.
+  double? rate = shop.dollarRate;
+  DateTime? date = shop.dollarRateDate;
+  if (rate == null || date == null) {
+    print('No saved rate yet either. Try again when you are online.');
+    return;
+  }
+
+  print('');
+  print('₦1 = \$${rate.toStringAsFixed(6)}, from ${formatDate(date)}');
+  for (Product product in shop.products) {
+    print(
+      '${product.name}: ${formatNaira(product.price)} = '
+      '${formatDollars(product.price, rate)}',
+    );
+  }
+  print('Stock left is worth ${formatDollars(shop.stockValue, rate)}.');
+  print(ratesCredit);
+}
+
+String formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+
 // --- Asking questions ------------------------------------------------------
 
 void printMenu() {
@@ -109,6 +157,7 @@ void printMenu() {
   print('4. Add a product');
   print('5. What is running low?');
   print("6. Today's sales");
+  print('7. Prices in dollars');
   print('q. Quit');
   stdout.write('Choose: ');
 }

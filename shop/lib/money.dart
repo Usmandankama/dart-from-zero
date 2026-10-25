@@ -14,3 +14,8 @@ String formatNaira(int amount) {
   }
   return amount < 0 ? '-$naira$result' : '$naira$result';
 }
+
+// Turns a naira amount into dollars at the given rate: 1200 at 0.00065 is
+// $0.78. The \$ is a plain dollar sign, not the start of a ${...}.
+String formatDollars(int naira, double rate) =>
+    '\$${(naira * rate).toStringAsFixed(2)}';

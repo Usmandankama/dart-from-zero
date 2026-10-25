@@ -10,6 +10,11 @@ class Shop {
   final List<Product> _products = [];
   final List<Sale> _sales = [];
 
+  // The last naira-to-dollar rate we fetched, and when. Saved with the shop,
+  // so the dollar prices still work the next time there's no internet.
+  double? dollarRate;
+  DateTime? dollarRateDate;
+
   Shop();
 
   // A named constructor: a second way to make a Shop, this one already
@@ -175,9 +180,17 @@ class Shop {
   Map<String, dynamic> toJson() => {
     'products': _products.map((product) => product.toJson()).toList(),
     'sales': _sales.map((sale) => sale.toJson()).toList(),
+    'dollarRate': dollarRate,
+    'dollarRateDate': dollarRateDate?.toIso8601String(),
   };
 
   Shop.fromJson(Map<String, dynamic> json) {
+    // A file saved before lesson 11 has no rate in it, so both can be null.
+    // JSON can store 1.0 as 1, so read the rate as any number (num).
+    dollarRate = (json['dollarRate'] as num?)?.toDouble();
+    String? rateDate = json['dollarRateDate'] as String?;
+    dollarRateDate = rateDate == null ? null : DateTime.parse(rateDate);
+
     for (var product in json['products'] as List) {
       _products.add(Product.fromJson(product as Map<String, dynamic>));
     }
