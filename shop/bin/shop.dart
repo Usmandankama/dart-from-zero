@@ -1,9 +1,11 @@
-// Lesson 11 · Packages and the internet: live exchange rates
+// Lesson 12 · Tests, a real .exe, and what to learn next
 //
 // Run it from the shop folder:   dart run
 // Type a menu number and press Enter. Type q to quit.
 // When it asks a question, press Enter on its own to go back to the menu.
 // Everything is saved to shop.json in the folder you run it from.
+//
+// Build a program you can share:   dart compile exe bin/shop.dart -o shop.exe
 
 import 'dart:io';
 
