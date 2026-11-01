@@ -1,0 +1,10 @@
+name: dart_from_zero
+description: The code for every lesson of Dart from Zero.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+dev_dependencies:
+  lints: ^6.0.0
